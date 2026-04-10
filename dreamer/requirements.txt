@@ -1,0 +1,25 @@
+# DreamerV3 — Mac development dependencies
+# Install with: pip install -r requirements.txt
+#
+# After installing, register Atari ROMs:
+#   autorom --accept-license
+
+# Core ML
+torch>=2.0.0
+torchvision>=0.15.0
+
+# RL environment
+gymnasium[atari]>=0.29.0
+ale-py>=0.8.1
+autorom[accept-rom-license]>=0.6.1
+
+# Image processing (for frame resize in atari.py)
+Pillow>=9.0.0
+
+# Config
+pyyaml>=6.0
+
+# Utilities
+numpy>=1.24.0
+tqdm>=4.65.0
+tqdm>=4.65.0

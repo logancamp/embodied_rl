@@ -1,0 +1,85 @@
+# DreamerV3 base hyperparameters — exact values from Hafner et al. 2023
+# https://arxiv.org/abs/2301.04104
+# These are the fixed hyperparameters used across ALL domains in the paper.
+# Do not change these for Stage 0. Override via size configs only.
+
+# ── Environment ────────────────────────────────────────────────────────────────
+env:
+  name: "ALE/Pong-v5"           # gymnasium env id
+  action_repeat: 4              # repeat each action this many frames
+  obs_size: 64                  # resize frames to obs_size x obs_size
+  grayscale: false              # DreamerV3 uses RGB (3-channel) for Atari
+  max_episode_steps: 27000      # 108k ALE frames / 4 action_repeat
+  noop_max: 30                  # max no-ops at episode start
+  terminal_on_life_loss: true   # treat life loss as episode end during training
+
+# ── Model sizes (overridden by size configs) ───────────────────────────────────
+model:
+  # RSSM
+  deter: 512                    # deterministic GRU state size
+  stoch: 32                     # number of categorical latent variables
+  classes: 32                   # classes per categorical variable
+  # stoch * classes = 1024 total stochastic dimensions
+
+  # CNN encoder / decoder
+  cnn_depth: 32                 # base channel multiplier; layers use [1,2,3,4]*cnn_depth
+
+  # Shared MLP width for heads, actor, critic
+  units: 512
+  mlp_layers: 2                 # hidden layers in each MLP head
+
+# ── Training ───────────────────────────────────────────────────────────────────
+training:
+  total_steps: 500000           # total environment steps (100k for Atari100k eval)
+  seed_steps: 2500              # random actions before training starts
+  batch_size: 16                # sequences per batch
+  batch_length: 64              # timesteps per sequence
+  train_ratio: 512              # gradient steps per environment step (512 = paper default)
+  replay_size: 1000000          # max transitions in replay buffer
+
+# ── World model ────────────────────────────────────────────────────────────────
+world_model:
+  lr: 0.0001                    # learning rate
+  grad_clip: 1000.0             # gradient norm clip
+  kl_balance: 0.8               # weight for sg(posterior)||prior vs posterior||sg(prior)
+  kl_free: 1.0                  # free bits per latent variable (nats)
+  kl_scale: 1.0                 # overall KL loss weight
+  reward_scale: 1.0             # reward loss weight
+  continue_scale: 1.0           # continue loss weight
+
+# ── Actor-critic ───────────────────────────────────────────────────────────────
+actor:
+  lr: 0.00003                   # actor learning rate
+  grad_clip: 100.0
+  entropy_coeff: 0.0003         # entropy regularization coefficient
+  unimix: 0.01                  # uniform mixture for action distribution
+
+critic:
+  lr: 0.00003                   # critic learning rate
+  grad_clip: 100.0
+  ema_decay: 0.98               # EMA decay for target critic network
+
+# ── Returns ────────────────────────────────────────────────────────────────────
+returns:
+  gamma: 0.997                  # discount factor
+  lam: 0.95                     # lambda for TD(lambda) returns
+  horizon: 15                   # imagination rollout horizon
+  return_norm_decay: 0.99       # EMA decay for return normalizer
+  return_norm_limit: 1.0        # minimum return normalization scale
+
+# ── Distributional targets ─────────────────────────────────────────────────────
+twohot:
+  bins: 255                     # number of bins
+  low: -20.0                    # minimum bin value (symlog space)
+  high: 20.0                    # maximum bin value (symlog space)
+
+# ── Logging / checkpointing ────────────────────────────────────────────────────
+logging:
+  log_every: 1000               # log metrics every N environment steps
+  eval_every: 10000             # evaluate every N environment steps
+  eval_episodes: 5              # episodes per evaluation
+  checkpoint_every: 50000       # save checkpoint every N steps
+  logdir: "logs/run"            # base log directory
+
+# ── Device ─────────────────────────────────────────────────────────────────────
+device: "cuda"                  # cuda | mps | cpu

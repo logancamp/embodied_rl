@@ -1,0 +1,29 @@
+# Debug config — XS model size for M2 Mac (MPS backend)
+# Use this to verify code runs and logic is correct.
+# Training will be slow — this is for debugging only, NOT for results.
+# Run with: python train.py --config configs/debug.yaml
+
+model:
+  deter: 256
+  stoch: 32
+  classes: 32
+  cnn_depth: 24
+  units: 256
+  mlp_layers: 2
+
+training:
+  total_steps: 50000
+  seed_steps: 1000
+  batch_size: 8                 # smaller batch fits comfortably in unified memory
+  batch_length: 32              # shorter sequences for faster iteration
+  train_ratio: 64               # fewer grad steps — we just want to see it run
+  replay_size: 100000
+
+logging:
+  log_every: 200
+  eval_every: 2000
+  eval_episodes: 2
+  checkpoint_every: 10000
+  logdir: "logs/debug"
+
+device: "mps"                   # Metal Performance Shaders on Apple Silicon
