@@ -1,3 +1,4 @@
+import signal
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -89,6 +90,12 @@ def train(env_id, total_steps=float('inf'), gamma=0.99, gae_lambda=0.95, rollout
 
     writer = SummaryWriter(f'runs/{env_id}') if verbose else None
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    
+    # handle terminal close and kill signals
+    def _handle_signal(signum, frame):
+        raise KeyboardInterrupt
+    signal.signal(signal.SIGHUP, _handle_signal)
+    signal.signal(signal.SIGTERM, _handle_signal)
 
     env = gym.make(env_id)
     if isinstance(env, TimeLimit):

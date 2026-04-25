@@ -53,4 +53,6 @@ board:
 	$(VENV)/bin/tensorboard --logdir runs/
 
 test:
-	$(MAKE) run & $(MAKE) board
+	osascript -e 'tell app "Terminal" to do script "cd $(PWD) && $(MAKE) board"'
+	sleep 2 && open -a "Safari" http://localhost:6006
+	$(MAKE) run
