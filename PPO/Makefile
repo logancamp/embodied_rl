@@ -19,7 +19,7 @@ LATEST_CKPT := $(shell ls -t $(CHECKPOINT_DIR)/$(SAFE_ENV)_latest.pt 2>/dev/null
 RESUME := $(if $(LATEST_CKPT),--checkpoint $(LATEST_CKPT),)
 
 clean:
-	rm -rf $(VENV) __pycache__ runs/ configs/ checkpoints/
+	rm -rf $(VENV) __pycache__ runs/ ppo_env
 
 install: $(VENV)/bin/activate
 
