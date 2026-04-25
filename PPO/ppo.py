@@ -81,7 +81,7 @@ def space_dim(space):
     raise ValueError(f"Unable to infer dimension from space {space}")
 
 
-def train(env_id, total_steps=500_000, gamma=0.99, gae_lambda=0.95, rollout_steps=2048,
+def train(env_id, total_steps=float('inf'), gamma=0.99, gae_lambda=0.95, rollout_steps=2048,
           hidden=64, lr=3e-4, render=False,
           return_score=False, verbose=True,
           checkpoint=None,
@@ -108,7 +108,6 @@ def train(env_id, total_steps=500_000, gamma=0.99, gae_lambda=0.95, rollout_step
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, eps=1e-5)
     buffer = RolloutBuffer(rollout_steps, obs_dim, act_dim if continuous else 1, device, continuous)
 
-    # ── Resume from checkpoint ────────────────────────────────────────
     if checkpoint and verbose:
         model.load_state_dict(torch.load(checkpoint, map_location=device))
         print(f'  Resumed from {checkpoint}')
@@ -126,17 +125,16 @@ def train(env_id, total_steps=500_000, gamma=0.99, gae_lambda=0.95, rollout_step
     recent_lengths = []
     best_avg = 0.0
     base_ent_coef = ppo_kwargs.pop('ent_coef', 0.01)
-
     interrupted = False
 
     while step < total_steps:
-        model.eval()
-        buffer.reset()
+        try:
+            model.eval()
+            buffer.reset()
 
-        optimizer.param_groups[0]['lr'] = lr * (1.0 - step / total_steps)
+            optimizer.param_groups[0]['lr'] = lr * (1.0 - step / total_steps)
 
-        for _ in range(rollout_steps):
-            try:
+            for _ in range(rollout_steps):
                 with torch.no_grad():
                     action, logprob, _, value = model.get_action_and_value(obs)
 
@@ -164,71 +162,68 @@ def train(env_id, total_steps=500_000, gamma=0.99, gae_lambda=0.95, rollout_step
                 if done:
                     ep_count += 1
                     recent_lengths.append(ep_len)
-                    
+
                     if len(recent_lengths) >= 10:
                         avg_len = np.mean(recent_lengths)
                         ent_coef = base_ent_coef * max(0.1, 1.0 - avg_len / 1000.0)
                         ppo_kwargs['ent_coef'] = ent_coef
                         if writer:
                             writer.add_scalar('charts/ent_coef', ent_coef, step)
-                    
+
                     if len(recent_lengths) > 100:
                         recent_lengths.pop(0)
-                        
+
                     if len(recent_lengths) >= 10 and np.mean(recent_lengths) > best_avg:
                         best_avg = np.mean(recent_lengths)
                         best_path = f'checkpoints/{env_id.replace("/", "_")}_best.pt'
                         os.makedirs('checkpoints', exist_ok=True)
                         torch.save(model.state_dict(), best_path)
-                        
                         if verbose:
                             print(f'  New best avg: {best_avg:.1f} — saved best checkpoint')
-                            
+
                     if writer:
                         writer.add_scalar('charts/episode_length', ep_len, step)
                         writer.add_scalar('charts/episode_count',  ep_count, step)
-                        
+
                     if verbose:
                         print(f'  Episode {ep_count} | length {ep_len} steps')
-                        
+
                     ep_len = 0
                     obs, _ = env.reset()
                     obs = torch.tensor(obs, dtype=torch.float32).to(device)
 
-            except KeyboardInterrupt:
-                interrupted = True
-                break
+            with torch.no_grad():
+                next_val = model.get_value(obs).squeeze().cpu()
 
-        with torch.no_grad():
-            next_val = model.get_value(obs).squeeze().cpu()
+            advs, rets = compute_gae(
+                buffer.rewards[:buffer.ptr].cpu(),
+                buffer.values[:buffer.ptr].cpu(),
+                buffer.dones[:buffer.ptr].cpu(),
+                next_val,
+                gamma=gamma,
+                lam=gae_lambda,
+            )
 
-        advs, rets = compute_gae(
-            buffer.rewards[:buffer.ptr].cpu(),
-            buffer.values[:buffer.ptr].cpu(),
-            buffer.dones[:buffer.ptr].cpu(),
-            next_val,
-            gamma=gamma,
-            lam=gae_lambda,
-        )
+            model.train()
+            metrics = ppo_update(model, optimizer, buffer, rets.to(device), advs.to(device), **ppo_kwargs)
 
-        model.train()
-        metrics = ppo_update(model, optimizer, buffer, rets.to(device), advs.to(device), **ppo_kwargs)
+            if writer:
+                writer.add_scalar('losses/policy_loss', metrics['pg_loss'],  step)
+                writer.add_scalar('losses/value_loss', metrics['vf_loss'],  step)
+                writer.add_scalar('losses/entropy', metrics['entropy'],  step)
+                writer.add_scalar('losses/clip_frac', metrics['clip_frac'], step)
 
-        if writer:
-            writer.add_scalar('losses/policy_loss', metrics['pg_loss'],  step)
-            writer.add_scalar('losses/value_loss',  metrics['vf_loss'],  step)
-            writer.add_scalar('losses/entropy',     metrics['entropy'],  step)
-            writer.add_scalar('losses/clip_frac',   metrics['clip_frac'], step)
+            if verbose:
+                print(f'Step {step:>8} | ' +
+                      ' | '.join(f'{k}={v:.4f}' for k, v in metrics.items()))
 
-        if verbose:
-            print(f'Step {step:>8} | ' +
-                  ' | '.join(f'{k}={v:.4f}' for k, v in metrics.items()))
+        except KeyboardInterrupt:
+            interrupted = True
 
         if interrupted:
             print('\n  Interrupted — saving checkpoint...')
             break
 
-    # always runs whether interrupted or finished normally
     os.makedirs('checkpoints', exist_ok=True)
     ckpt_path = f'checkpoints/{env_id.replace("/", "_")}_latest.pt'
     torch.save(model.state_dict(), ckpt_path)
