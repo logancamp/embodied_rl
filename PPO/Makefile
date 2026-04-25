@@ -7,7 +7,7 @@ PIP := $(VENV)/bin/pip
 # ── Configure these ────────────────────────────────────────────
 RUN_ENV := CartPole-v1
 
-TUNE_ENVS := Pendulum-v1 LunarLander-v3
+TUNE_ENVS := CartPole-v1 Pendulum-v1 LunarLander-v3
 TUNE_TRIALS := 50
 
 CHECKPOINT_DIR := checkpoints
