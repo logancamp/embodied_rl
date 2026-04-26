@@ -45,7 +45,7 @@ class ActorCritic(nn.Module):
             dist = Normal(mean, std)
             if action is None:
                 action = dist.sample()
-            if action.dim() == 1:
+            if action.dim() == 1 and mean.dim() == 2:
                 action = action.unsqueeze(-1)
             log_prob = dist.log_prob(action).sum(-1)
             entropy  = dist.entropy().sum(-1)

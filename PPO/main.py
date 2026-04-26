@@ -4,7 +4,7 @@ import os
 import gymnasium as gym # type: ignore
 from gymnasium.wrappers import NormalizeObservation # type: ignore
 from ppo import train, tune
-from wrappers import PhaseSwitch, MetricsPrinter, strip_timelimit
+from wrappers import PhaseSwitch, MetricsPrinter, ShapedMountainCar, strip_timelimit
 
 ENV_ID = 'CartPole-v1'
 
@@ -64,8 +64,8 @@ FACTORIES = {
     'Acrobot-v1': _factory(
         'Acrobot-v1', fmt_fn=_fmt_length),          # shorter = better
 
-    'MountainCar-v0': _factory(
-        'MountainCar-v0', fmt_fn=_fmt_reward),       # sparse, reward only at top
+    'MountainCar-v0': _factory('MountainCar-v0', 
+        extra_wrapper=ShapedMountainCar, fmt_fn=_fmt_reward),
 
     'MountainCarContinuous-v0': _factory(
         'MountainCarContinuous-v0', fmt_fn=_fmt_reward),

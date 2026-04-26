@@ -9,8 +9,9 @@ ENVS := \
 	CartPole-v1 \
 	Pendulum-v1 \
 	LunarLander-v3 \
-	\
-	Acrobot-v1 \
+	Acrobot-v1 
+
+TUNE_ENVS := \
 	MountainCar-v0 \
 	MountainCarContinuous-v0 \
 	LunarLanderContinuous-v3 \
@@ -29,9 +30,9 @@ ENVS := \
 	InvertedDoublePendulum-v4
 
 # ── Configure these ────────────────────────────────────────────
-RUN_ENV := LunarLander-v3 # Pendulum-v1 # CartPole-v1 # LunarLander-v3
+RUN_ENV := CartPole-v1 #MountainCar-v0 #MountainCarContinuous-v0 #Acrobot-v1 #Pendulum-v1 #CartPole-v1 #LunarLander-v3
 
-TUNE_ENVS := Pendulum-v1 CartPole-v1 LunarLander-v3
+# TUNE_ENVS := Pendulum-v1 CartPole-v1 LunarLander-v3
 TUNE_TRIALS := 50
 
 CHECKPOINT_DIR := checkpoints

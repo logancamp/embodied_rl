@@ -150,6 +150,8 @@ def train(env_id, total_steps=float('inf'), gamma=0.99, gae_lambda=0.95, rollout
                 a = action.cpu().numpy()
                 if not continuous:
                     a = int(a)
+                else:
+                    a = a.flatten()
 
                 next_obs, reward, terminated, truncated, _ = env.step(a)
                 done = terminated or truncated
