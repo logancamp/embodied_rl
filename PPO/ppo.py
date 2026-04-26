@@ -9,7 +9,6 @@ from torch.utils.tensorboard import SummaryWriter
 
 import gymnasium as gym  # type: ignore
 import optuna # type: ignore
-from gymnasium.wrappers import TimeLimit # type: ignore
 
 from rollout_buffer import RolloutBuffer
 from actor_critic import ActorCritic
@@ -31,11 +30,15 @@ def compute_gae(rewards, values, dones, next_value, gamma=0.99, lam=0.95):
 
 
 def ppo_update(model, optimizer, buffer, returns, advantages,
-               clip_eps=0.2, vf_coef=0.5, ent_coef=0.01,
+               clip_eps=0.2, vf_coef=0.5, continuous=False, ent_coef=0.01,
                n_epochs=10, batch_size=64, max_grad_norm=0.5):
 
     obs = buffer.obs[:buffer.ptr]
-    actions = buffer.actions[:buffer.ptr].squeeze(-1).long()
+    
+    actions = buffer.actions[:buffer.ptr].squeeze(-1)
+    if not continuous:
+        actions = actions.long()
+        
     logprobs = buffer.logprobs[:buffer.ptr]
     advs = advantages[:buffer.ptr]
     rets = returns[:buffer.ptr]
@@ -84,30 +87,26 @@ def space_dim(space):
 
 def train(env_id, total_steps=float('inf'), gamma=0.99, gae_lambda=0.95, rollout_steps=2048,
           hidden=64, lr=3e-4, render=False,
-          return_score=False, verbose=True,
-          checkpoint=None,
+          return_score=False, verbose=True, silent_episodes=False,
+          checkpoint=None, env_factory=None, render_factory=None,
           **ppo_kwargs):
 
     writer = SummaryWriter(f'runs/{env_id}') if verbose else None
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    
+
     # handle terminal close and kill signals
     def _handle_signal(signum, frame):
         raise KeyboardInterrupt
     signal.signal(signal.SIGHUP, _handle_signal)
     signal.signal(signal.SIGTERM, _handle_signal)
 
-    env = gym.make(env_id)
-    if isinstance(env, TimeLimit):
-        env = env.env
+    env = env_factory() if env_factory else gym.make(env_id)
     continuous = hasattr(env.action_space, 'shape') and env.action_space.shape != ()
 
     render_env = None
     if render:
-        render_env = gym.make(env_id, render_mode="human")
-        if isinstance(render_env, TimeLimit):
-            render_env = render_env.env
-
+        render_env = render_factory() if render_factory else gym.make(env_id, render_mode="human")
+            
     obs_dim = space_dim(env.observation_space)
     act_dim = space_dim(env.action_space)
 
@@ -120,16 +119,19 @@ def train(env_id, total_steps=float('inf'), gamma=0.99, gae_lambda=0.95, rollout
         print(f'  Resumed from {checkpoint}')
 
     obs, _ = env.reset()
-    obs = torch.tensor(obs, dtype=torch.float32).to(device)
+    obs = torch.tensor(obs, dtype=torch.float32).flatten().to(device)
 
     render_obs = None
     if render_env:
         render_obs, _ = render_env.reset()
+        render_obs = np.array(render_obs).flatten()
 
     step = 0
     ep_count = 0
     ep_len = 0
+    ep_reward = 0.0
     recent_lengths = []
+    recent_rewards = []
     best_avg = 0.0
     base_ent_coef = ppo_kwargs.pop('ent_coef', 0.01)
     interrupted = False
@@ -152,9 +154,10 @@ def train(env_id, total_steps=float('inf'), gamma=0.99, gae_lambda=0.95, rollout
                 next_obs, reward, terminated, truncated, _ = env.step(a)
                 done = terminated or truncated
                 buffer.push(obs, action, logprob, torch.tensor(reward), torch.tensor(done), value)
-                obs = torch.tensor(next_obs, dtype=torch.float32).to(device)
+                obs = torch.tensor(next_obs, dtype=torch.float32).flatten().to(device)
                 step += 1
                 ep_len += 1
+                ep_reward += reward
 
                 if render_env:
                     with torch.no_grad():
@@ -163,12 +166,19 @@ def train(env_id, total_steps=float('inf'), gamma=0.99, gae_lambda=0.95, rollout
                     render_obs, _, term, trunc, _ = render_env.step(
                         int(render_action.cpu().numpy()) if not continuous
                         else render_action.cpu().numpy())
+                    render_obs = np.array(render_obs).flatten()
                     if term or trunc:
                         render_obs, _ = render_env.reset()
+                        render_obs = np.array(render_obs).flatten()
 
                 if done:
                     ep_count += 1
                     recent_lengths.append(ep_len)
+                    recent_rewards.append(ep_reward)
+                    
+                    if len(recent_rewards) > 100:
+                        recent_rewards.pop(0)
+                    ep_reward = 0.0 
 
                     if len(recent_lengths) >= 10:
                         avg_len = np.mean(recent_lengths)
@@ -183,21 +193,23 @@ def train(env_id, total_steps=float('inf'), gamma=0.99, gae_lambda=0.95, rollout
                     if len(recent_lengths) >= 10 and np.mean(recent_lengths) > best_avg:
                         best_avg = np.mean(recent_lengths)
                         best_path = f'checkpoints/{env_id.replace("/", "_")}_best.pt'
-                        os.makedirs('checkpoints', exist_ok=True)
-                        torch.save(model.state_dict(), best_path)
+                        
                         if verbose:
+                            os.makedirs('checkpoints', exist_ok=True)
+                            torch.save(model.state_dict(), best_path)
                             print(f'  New best avg: {best_avg:.1f} — saved best checkpoint')
 
                     if writer:
                         writer.add_scalar('charts/episode_length', ep_len, step)
                         writer.add_scalar('charts/episode_count',  ep_count, step)
 
-                    if verbose:
-                        print(f'  Episode {ep_count} | length {ep_len} steps')
+                    if verbose and not silent_episodes:
+                        print(f'  Episode {ep_count} | length {ep_len} | reward {ep_reward:.1f}')
 
                     ep_len = 0
                     obs, _ = env.reset()
-                    obs = torch.tensor(obs, dtype=torch.float32).to(device)
+                    obs = torch.tensor(obs, dtype=torch.float32).flatten().to(device)
+
 
             with torch.no_grad():
                 next_val = model.get_value(obs).squeeze().cpu()
@@ -212,7 +224,8 @@ def train(env_id, total_steps=float('inf'), gamma=0.99, gae_lambda=0.95, rollout
             )
 
             model.train()
-            metrics = ppo_update(model, optimizer, buffer, rets.to(device), advs.to(device), **ppo_kwargs)
+            metrics = ppo_update(model, optimizer, buffer, rets.to(device), advs.to(device),
+                     continuous=continuous, **ppo_kwargs)
 
             if writer:
                 writer.add_scalar('losses/policy_loss', metrics['pg_loss'],  step)
@@ -231,17 +244,18 @@ def train(env_id, total_steps=float('inf'), gamma=0.99, gae_lambda=0.95, rollout
             print('\n  Interrupted — saving checkpoint...')
             break
 
-    os.makedirs('checkpoints', exist_ok=True)
-    ckpt_path = f'checkpoints/{env_id.replace("/", "_")}_latest.pt'
-    torch.save(model.state_dict(), ckpt_path)
     if verbose:
+        os.makedirs('checkpoints', exist_ok=True)
+        ckpt_path = f'checkpoints/{env_id.replace("/", "_")}_latest.pt'
+        torch.save(model.state_dict(), ckpt_path)
         print(f'  Saved → {ckpt_path}')
+        
     env.close()
     if render_env: render_env.close()
     if writer:     writer.close()
 
     if return_score:
-        return float(np.mean(recent_lengths)) if recent_lengths else 0.0
+        return float(np.mean(recent_rewards)) if recent_rewards else 0.0
     return model
 
 

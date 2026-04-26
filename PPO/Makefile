@@ -4,10 +4,33 @@ VENV := ppo_env
 PYTHON := $(VENV)/bin/python
 PIP := $(VENV)/bin/pip
 
-# ── Configure these ────────────────────────────────────────────
-RUN_ENV := CartPole-v1
+# List of all environments to choose from (for reference)
+ENVS := \
+	CartPole-v1 \
+	Pendulum-v1 \
+	Acrobot-v1 \
+	MountainCar-v0 \
+	MountainCarContinuous-v0 \
+	LunarLander-v3 \
+	LunarLanderContinuous-v3 \
+	BipedalWalker-v3 \
+	BipedalWalkerHardcore-v3 \
+	HalfCheetah-v4 \
+	Hopper-v4 \
+	Walker2d-v4 \
+	Ant-v4 \
+	Humanoid-v4 \
+	HumanoidStandup-v4 \
+	Swimmer-v4 \
+	Reacher-v4 \
+	Pusher-v4 \
+	InvertedPendulum-v4 \
+	InvertedDoublePendulum-v4
 
-TUNE_ENVS := CartPole-v1 Pendulum-v1 LunarLander-v3
+# ── Configure these ────────────────────────────────────────────
+RUN_ENV := LunarLander-v3 # Pendulum-v1 # CartPole-v1 # LunarLander-v3
+
+TUNE_ENVS := Pendulum-v1 CartPole-v1 LunarLander-v3
 TUNE_TRIALS := 50
 
 CHECKPOINT_DIR := checkpoints

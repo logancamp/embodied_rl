@@ -41,18 +41,20 @@ class ActorCritic(nn.Module):
 
         if self.continuous:
             mean = self.actor_mean(features)
-            std = self.actor_logstd.exp().expand_as(mean)
+            std  = self.actor_logstd.exp().expand_as(mean)
             dist = Normal(mean, std)
             if action is None:
                 action = dist.sample()
-            log_prob = dist.log_prob(action).sum(-1)   # sum across action dims
-            entropy = dist.entropy().sum(-1)
+            if action.dim() == 1:
+                action = action.unsqueeze(-1)
+            log_prob = dist.log_prob(action).sum(-1)
+            entropy  = dist.entropy().sum(-1)
         else:
             logits = self.actor(features)
             dist = Categorical(logits=logits)
             if action is None:
                 action = dist.sample()
-            log_prob = dist.log_prob(action)            # already scalar per sample
+            log_prob = dist.log_prob(action)
             entropy = dist.entropy()
 
         return action, log_prob, entropy, value
