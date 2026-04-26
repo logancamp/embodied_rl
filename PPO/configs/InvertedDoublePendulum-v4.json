@@ -1,0 +1,17 @@
+{
+  "env_id": "InvertedDoublePendulum-v4",
+  "score": 513.0461646041231,
+  "params": {
+    "lr": 0.000994824340499321,
+    "ent_coef": 0.0006107445509452877,
+    "vf_coef": 0.41621898131679014,
+    "clip_eps": 0.22932740271856808,
+    "gamma": 0.9709260368027832,
+    "gae_lambda": 0.8104028430851176,
+    "max_grad_norm": 0.45079286033165666,
+    "hidden": 256,
+    "n_epochs": 8,
+    "batch_size": 32,
+    "rollout_steps": 1024
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "env_id": "MountainCarContinuous-v0",
+  "score": -6.568385410106756,
+  "params": {
+    "lr": 0.000941843062651912,
+    "ent_coef": 0.0025984881519534263,
+    "vf_coef": 0.8509565542718814,
+    "clip_eps": 0.20148529318803943,
+    "gamma": 0.9512020735639738,
+    "gae_lambda": 0.8567474752421229,
+    "max_grad_norm": 0.9847017110843338,
+    "hidden": 128,
+    "n_epochs": 10,
+    "batch_size": 32,
+    "rollout_steps": 1024
+  }
+}

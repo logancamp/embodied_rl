@@ -1,0 +1,17 @@
+{
+  "env_id": "HumanoidStandup-v4",
+  "score": 71200.87800557028,
+  "params": {
+    "lr": 0.0002884463315298655,
+    "ent_coef": 0.01971602829947422,
+    "vf_coef": 0.7734823939766815,
+    "clip_eps": 0.3363092068209387,
+    "gamma": 0.9534049396053907,
+    "gae_lambda": 0.9421563659231391,
+    "max_grad_norm": 0.3721572928809922,
+    "hidden": 256,
+    "n_epochs": 5,
+    "batch_size": 32,
+    "rollout_steps": 2048
+  }
+}

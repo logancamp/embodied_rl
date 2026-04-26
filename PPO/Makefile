@@ -9,11 +9,7 @@ ENVS := \
 	CartPole-v1 \
 	Pendulum-v1 \
 	LunarLander-v3 \
-	Acrobot-v1 
-
-TUNE_ENVS := \
-	MountainCar-v0 \
-	MountainCarContinuous-v0 \
+	Acrobot-v1 \
 	LunarLanderContinuous-v3 \
 	BipedalWalker-v3 \
 	BipedalWalkerHardcore-v3 \
@@ -25,18 +21,19 @@ TUNE_ENVS := \
 	HumanoidStandup-v4 \
 	Swimmer-v4 \
 	Reacher-v4 \
-	Pusher-v4 \
 	InvertedPendulum-v4 \
-	InvertedDoublePendulum-v4
+	InvertedDoublePendulum-v4 \
+	MountainCarContinuous-v0
+
 
 # ── Configure these ────────────────────────────────────────────
-RUN_ENV := CartPole-v1 #MountainCar-v0 #MountainCarContinuous-v0 #Acrobot-v1 #Pendulum-v1 #CartPole-v1 #LunarLander-v3
-
-# TUNE_ENVS := Pendulum-v1 CartPole-v1 LunarLander-v3
-TUNE_TRIALS := 50
-
+RUN_ENV := Acrobot-v1
 CHECKPOINT_DIR := checkpoints
+
+TUNE_ENVS := $(ENVS)
+TUNE_TRIALS := 50
 # ──────────────────────────────────────────────────────────────
+
 
 # Auto-find the most recent checkpoint for RUN_ENV (empty if none exist)
 SAFE_ENV := $(shell echo $(RUN_ENV) | tr '/' '_')

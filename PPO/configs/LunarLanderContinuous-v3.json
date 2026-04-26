@@ -1,0 +1,17 @@
+{
+  "env_id": "LunarLanderContinuous-v3",
+  "score": -82.89309256932316,
+  "params": {
+    "lr": 0.0007265740462057611,
+    "ent_coef": 0.0011172714382416517,
+    "vf_coef": 0.6264496004519979,
+    "clip_eps": 0.2249275594790834,
+    "gamma": 0.9678548759792579,
+    "gae_lambda": 0.9872881361744483,
+    "max_grad_norm": 0.9957496999752569,
+    "hidden": 128,
+    "n_epochs": 10,
+    "batch_size": 32,
+    "rollout_steps": 1024
+  }
+}

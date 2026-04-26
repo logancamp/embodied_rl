@@ -261,7 +261,7 @@ def train(env_id, total_steps=float('inf'), gamma=0.99, gae_lambda=0.95, rollout
     return model
 
 
-def tune(env_id, n_trials=50, total_steps=50_000):
+def tune(env_id, n_trials=50, total_steps=50_000, env_factory=None):
     optuna.logging.set_verbosity(optuna.logging.WARNING)
 
     os.makedirs('configs', exist_ok=True)
@@ -287,6 +287,7 @@ def tune(env_id, n_trials=50, total_steps=50_000):
             total_steps = total_steps,
             rollout_steps = rollout_steps,
             hidden = hidden,
+            env_factory  = env_factory,
             lr = lr,
             render = False,
             return_score = True,

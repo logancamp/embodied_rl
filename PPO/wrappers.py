@@ -64,11 +64,3 @@ class PhaseSwitch(gym.Wrapper):
                 print('  Phase switch — TimeLimit removed, running forever')
 
         return obs, reward, terminated, truncated, info
-    
-    
-class ShapedMountainCar(gym.Wrapper):
-    def step(self, action):
-        obs, reward, term, trunc, info = self.env.step(action)
-        pos, vel = obs
-        reward += 0.01 * np.sin(3 * pos)  # height-based shaping
-        return obs, reward, term, trunc, info

@@ -4,7 +4,7 @@ import os
 import gymnasium as gym # type: ignore
 from gymnasium.wrappers import NormalizeObservation # type: ignore
 from ppo import train, tune
-from wrappers import PhaseSwitch, MetricsPrinter, ShapedMountainCar, strip_timelimit
+from wrappers import PhaseSwitch, MetricsPrinter, strip_timelimit
 
 ENV_ID = 'CartPole-v1'
 
@@ -32,26 +32,28 @@ def _fmt_mujoco(c, l, r):
 
 
 def _make(env_id, render=False, normalize_obs=False,
-          strip_tl=False, phase_threshold=None, fmt_fn=_fmt_reward):
-    """Factory helper — builds the env with requested wrappers."""
+          strip_tl=False, phase_threshold=None, extra_wrapper=None, 
+          fmt_fn=_fmt_reward, silent=False):
     kw = {'render_mode': 'human'} if render else {}
     env = gym.make(env_id, **kw)
     if strip_tl:
         env = strip_timelimit(env)
+    if extra_wrapper is not None:
+        env = extra_wrapper(env)
     if phase_threshold is not None:
         env = PhaseSwitch(env, threshold=phase_threshold)
     if normalize_obs:
         env = NormalizeObservation(env)
-    if not render:
+    if not render and not silent:
         env = MetricsPrinter(env, fmt_fn)
     return env
 
 
 def _factory(env_id, **kw):
-    """Returns (train_factory, render_factory) pair."""
     return (
         lambda: _make(env_id, render=False, **kw),
-        lambda: _make(env_id, render=True,  **{k: v for k, v in kw.items() if k != 'fmt_fn'}),
+        lambda: _make(env_id, render=True, **{k: v for k, v in kw.items() if k != 'fmt_fn'}),
+        lambda: _make(env_id, render=False, silent=True, **kw),  # for tuning
     )
 
 
@@ -62,10 +64,7 @@ FACTORIES = {
         'CartPole-v1', strip_tl=True, fmt_fn=_fmt_length),
 
     'Acrobot-v1': _factory(
-        'Acrobot-v1', fmt_fn=_fmt_length),          # shorter = better
-
-    'MountainCar-v0': _factory('MountainCar-v0', 
-        extra_wrapper=ShapedMountainCar, fmt_fn=_fmt_reward),
+        'Acrobot-v1', fmt_fn=_fmt_length),
 
     'MountainCarContinuous-v0': _factory(
         'MountainCarContinuous-v0', fmt_fn=_fmt_reward),
@@ -113,9 +112,6 @@ FACTORIES = {
     'Reacher-v4': _factory(
         'Reacher-v4', normalize_obs=True, fmt_fn=_fmt_mujoco),
 
-    'Pusher-v4': _factory(
-        'Pusher-v4', normalize_obs=True, fmt_fn=_fmt_mujoco),
-
     # ── MuJoCo balance — strip timelimit, balance forever ────────────────────
     'InvertedPendulum-v4': _factory(
         'InvertedPendulum-v4', normalize_obs=True, strip_tl=True, fmt_fn=_fmt_length),
@@ -136,12 +132,14 @@ def run_train(env_id, checkpoint=None):
         print(f'  Loaded config for {env_id} (tuned score: {cfg["score"]:.1f})')
     else:
         print(f'  No config found for {env_id} — tuning first...')
-        params, _ = tune(env_id)
+        _, _, tune_factory = FACTORIES.get(env_id, (None, None, None))
+        params, _ = tune(env_id, env_factory=tune_factory)
 
-    env_factory, render_factory = FACTORIES.get(
+    env_factory, render_factory, _ = FACTORIES.get(
         env_id,
         (lambda: gym.make(env_id),
-         lambda: gym.make(env_id, render_mode='human'))
+         lambda: gym.make(env_id, render_mode='human'),
+         None)
     )
 
     train(
@@ -170,6 +168,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.tune:
-        tune(args.env, args.trials)
+        _, _, tune_factory = FACTORIES.get(args.env, (None, None, None))
+        tune(args.env, args.trials, env_factory=tune_factory)
     else:
         run_train(args.env, args.checkpoint)

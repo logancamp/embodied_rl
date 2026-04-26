@@ -1,0 +1,17 @@
+{
+  "env_id": "BipedalWalkerHardcore-v3",
+  "score": -104.58064270019531,
+  "params": {
+    "lr": 0.0009717607086493854,
+    "ent_coef": 0.0016886675994502748,
+    "vf_coef": 0.904669161658767,
+    "clip_eps": 0.25478679778929725,
+    "gamma": 0.9554360382549963,
+    "gae_lambda": 0.8206002669386755,
+    "max_grad_norm": 0.9296799418658765,
+    "hidden": 128,
+    "n_epochs": 3,
+    "batch_size": 64,
+    "rollout_steps": 512
+  }
+}
