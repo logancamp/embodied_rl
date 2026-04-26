@@ -8,10 +8,11 @@ PIP := $(VENV)/bin/pip
 ENVS := \
 	CartPole-v1 \
 	Pendulum-v1 \
+	LunarLander-v3 \
+	\
 	Acrobot-v1 \
 	MountainCar-v0 \
 	MountainCarContinuous-v0 \
-	LunarLander-v3 \
 	LunarLanderContinuous-v3 \
 	BipedalWalker-v3 \
 	BipedalWalkerHardcore-v3 \
