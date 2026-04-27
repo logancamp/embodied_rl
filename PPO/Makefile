@@ -13,8 +13,6 @@ ENVS := \
 	LunarLanderContinuous-v3 \
 	BipedalWalker-v3 \
 	BipedalWalkerHardcore-v3 \
-	HalfCheetah-v4 \
-	Hopper-v4 \
 	Walker2d-v4 \
 	Ant-v4 \
 	Humanoid-v4 \
@@ -27,7 +25,7 @@ ENVS := \
 
 
 # ── Configure these ────────────────────────────────────────────
-RUN_ENV := Acrobot-v1
+RUN_ENV := CartPole-v1
 CHECKPOINT_DIR := checkpoints
 
 TUNE_ENVS := $(ENVS)

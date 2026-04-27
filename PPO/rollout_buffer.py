@@ -1,8 +1,11 @@
 import torch
 
 class RolloutBuffer:
-    def __init__(self, steps, obs_dim, act_dim, device, continuous=False):
-        self.obs = torch.zeros(steps, obs_dim).to(device)
+    def __init__(self, steps, obs_dim, act_dim, device, continuous=False, obs_shape=None):
+        if obs_shape is not None:
+            self.obs = torch.zeros(steps, *obs_shape).to(device)
+        else:
+            self.obs = torch.zeros(steps, obs_dim).to(device)
         self.actions = torch.zeros(steps, act_dim if continuous else 1).to(device)
         self.logprobs = torch.zeros(steps).to(device)
         self.rewards = torch.zeros(steps).to(device)

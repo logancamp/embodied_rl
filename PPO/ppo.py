@@ -110,16 +110,30 @@ def train(env_id, total_steps=float('inf'), gamma=0.99, gae_lambda=0.95, rollout
     obs_dim = space_dim(env.observation_space)
     act_dim = space_dim(env.action_space)
 
-    model = ActorCritic(obs_dim, act_dim, hidden, continuous).to(device)
+    # detect image obs — shape is (C, H, W) or (H, W, C)
+    obs_space_shape = env.observation_space.shape
+    if len(obs_space_shape) == 3:
+        # convert HWC → CHW if needed
+        if obs_space_shape[2] in (1, 3, 4):
+            obs_shape = (obs_space_shape[2], obs_space_shape[0], obs_space_shape[1])
+        else:
+            obs_shape = obs_space_shape
+    else:
+        obs_shape = None
+
+    model = ActorCritic(obs_dim, act_dim, hidden, continuous, obs_shape=obs_shape).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, eps=1e-5)
-    buffer = RolloutBuffer(rollout_steps, obs_dim, act_dim if continuous else 1, device, continuous)
+    buffer = RolloutBuffer(rollout_steps, obs_dim, act_dim if continuous else 1, device, continuous, obs_shape=obs_shape)
 
     if checkpoint and verbose:
         model.load_state_dict(torch.load(checkpoint, map_location=device))
         print(f'  Resumed from {checkpoint}')
 
     obs, _ = env.reset()
-    obs = torch.tensor(obs, dtype=torch.float32).flatten().to(device)
+    if obs_shape:
+        obs = torch.tensor(obs, dtype=torch.float32).permute(2, 0, 1).to(device)
+    else:
+        obs = torch.tensor(obs, dtype=torch.float32).flatten().to(device)
 
     render_obs = None
     if render_env:
@@ -156,7 +170,12 @@ def train(env_id, total_steps=float('inf'), gamma=0.99, gae_lambda=0.95, rollout
                 next_obs, reward, terminated, truncated, _ = env.step(a)
                 done = terminated or truncated
                 buffer.push(obs, action, logprob, torch.tensor(reward), torch.tensor(done), value)
-                obs = torch.tensor(next_obs, dtype=torch.float32).flatten().to(device)
+                
+                if obs_shape:
+                    obs = torch.tensor(next_obs, dtype=torch.float32).permute(2, 0, 1).to(device)
+                else:
+                    obs = torch.tensor(next_obs, dtype=torch.float32).flatten().to(device)
+                    
                 step += 1
                 ep_len += 1
                 ep_reward += reward
@@ -210,7 +229,10 @@ def train(env_id, total_steps=float('inf'), gamma=0.99, gae_lambda=0.95, rollout
 
                     ep_len = 0
                     obs, _ = env.reset()
-                    obs = torch.tensor(obs, dtype=torch.float32).flatten().to(device)
+                    if obs_shape:
+                        obs = torch.tensor(obs, dtype=torch.float32).permute(2, 0, 1).to(device)
+                    else:
+                        obs = torch.tensor(obs, dtype=torch.float32).flatten().to(device)
 
 
             with torch.no_grad():
