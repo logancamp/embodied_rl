@@ -1,0 +1,17 @@
+{
+  "env_id": "ALE/MsPacman-v5",
+  "score": 774.6,
+  "params": {
+    "lr": 8.459220424360661e-05,
+    "ent_coef": 0.02513482097474901,
+    "vf_coef": 0.6933180406371808,
+    "clip_eps": 0.3063961838924999,
+    "gamma": 0.9754952855749847,
+    "gae_lambda": 0.9172491978181848,
+    "max_grad_norm": 0.9967684624065032,
+    "hidden": 256,
+    "n_epochs": 9,
+    "batch_size": 128,
+    "rollout_steps": 512
+  }
+}

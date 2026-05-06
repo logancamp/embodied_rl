@@ -44,15 +44,16 @@ def ppo_update(model,
                batch_size=64,
                max_grad_norm=0.5):
 
-    obs = buffer.obs[:buffer.ptr]
-
-    actions = buffer.actions[:buffer.ptr].squeeze(-1)
+    obs      = buffer.obs[:buffer.ptr]
+    actions  = buffer.actions[:buffer.ptr].squeeze(-1)
     if not continuous:
         actions = actions.long()
-
     logprobs = buffer.logprobs[:buffer.ptr]
     advs     = advantages[:buffer.ptr]
     rets     = returns[:buffer.ptr]
+
+    hx_buf = buffer.hx[:buffer.ptr] if buffer.hx is not None else None
+    cx_buf = buffer.cx[:buffer.ptr] if buffer.cx is not None else None
 
     advs = (advs - advs.mean()) / (advs.std() + 1e-8)
     T = obs.shape[0]
@@ -63,7 +64,14 @@ def ppo_update(model,
         for start in range(0, T, batch_size):
             mb = idxs[start:start + batch_size]
 
-            _, new_lp, entropy, new_val = model.get_action_and_value(obs[mb], actions[mb])
+            if hx_buf is not None:
+                hx_mb = hx_buf[mb].unsqueeze(0)
+                cx_mb = cx_buf[mb].unsqueeze(0)  # type: ignore
+            else:
+                hx_mb = cx_mb = None
+
+            _, new_lp, entropy, new_val, _, _ = model.get_action_and_value(
+                obs[mb], actions[mb], hx=hx_mb, cx=cx_mb)
 
             ratio    = (new_lp - logprobs[mb]).exp()
             pg_loss1 = -advs[mb] * ratio
@@ -142,6 +150,7 @@ def train(env_id,
           checkpoint=None,
           env_factory=None,
           render_factory=None,
+          use_lstm=False,
           variant=None,
           **ppo_kwargs):
 
@@ -180,10 +189,12 @@ def train(env_id,
     if verbose:
         print(f'  Using {device_name}')
 
-    model     = ActorCritic(obs_dim, act_dim, hidden, continuous, obs_shape=obs_shape).to(device)
+    model     = ActorCritic(obs_dim, act_dim, hidden, continuous,
+                            obs_shape=obs_shape, use_lstm=use_lstm).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, eps=1e-5)
     buffer    = RolloutBuffer(rollout_steps, obs_dim, act_dim if continuous else 1,
-                              device, continuous, obs_shape=obs_shape)
+                              device, continuous, obs_shape=obs_shape,
+                              hidden_size=hidden if use_lstm else None)
 
     if checkpoint and verbose:
         model.load_state_dict(torch.load(checkpoint, map_location=device))
@@ -199,6 +210,8 @@ def train(env_id,
         return t.to(device)
 
     obs = _to_tensor(obs_raw)
+
+    hx, cx = model.get_initial_state(device) if use_lstm else (None, None)
 
     render_obs = None
     if render_env:
@@ -216,7 +229,7 @@ def train(env_id,
     interrupted        = False
     start_time         = time.time()
     steps_to_threshold = None
-    variant_name       = variant or 'ppo'
+    variant_name       = variant or ('ppo_lstm' if use_lstm else 'ppo')
 
     while step < total_steps:
         try:
@@ -227,7 +240,8 @@ def train(env_id,
 
             for _ in range(rollout_steps):
                 with torch.no_grad():
-                    action, logprob, _, value = model.get_action_and_value(obs)
+                    action, logprob, _, value, hx, cx = model.get_action_and_value(
+                        obs, hx=hx, cx=cx)
 
                 a = action.cpu().numpy()
                 if not continuous:
@@ -237,7 +251,11 @@ def train(env_id,
 
                 next_obs, reward, terminated, truncated, _ = env.step(a)
                 done = terminated or truncated
-                buffer.push(obs, action, logprob, torch.tensor(reward), torch.tensor(done), value)
+
+                hx_store = hx.squeeze() if hx is not None else None
+                cx_store = cx.squeeze() if cx is not None else None
+                buffer.push(obs, action, logprob, torch.tensor(reward),
+                            torch.tensor(done), value, hx_store, cx_store)
                 obs = _to_tensor(next_obs)
 
                 step      += 1
@@ -251,7 +269,8 @@ def train(env_id,
                     elif not obs_shape:
                         render_t = render_t.flatten()
                     with torch.no_grad():
-                        render_action, _, _, _ = model.get_action_and_value(render_t.to(device))
+                        render_action, _, _, _, _, _ = model.get_action_and_value(
+                            render_t.to(device), hx=hx, cx=cx)
                     render_obs, _, term, trunc, _ = render_env.step(
                         int(render_action.cpu().numpy()) if not continuous
                         else render_action.cpu().numpy().flatten())
@@ -279,7 +298,6 @@ def train(env_id,
                     if len(recent_lengths) > 100:
                         recent_lengths.pop(0)
 
-                    # track steps to first positive mean reward
                     if steps_to_threshold is None and len(recent_rewards) >= 10:
                         if np.mean(recent_rewards) > 0:
                             steps_to_threshold = step
@@ -302,9 +320,11 @@ def train(env_id,
                     ep_len = 0
                     obs_raw, _ = env.reset()
                     obs = _to_tensor(obs_raw)
+                    if use_lstm:
+                        hx, cx = model.get_initial_state(device)
 
             with torch.no_grad():
-                next_val = model.get_value(obs).squeeze().cpu()
+                next_val = model.get_value(obs, hx=hx, cx=cx).squeeze().cpu()
 
             advs, rets = compute_gae(
                 buffer.rewards[:buffer.ptr].cpu(),
@@ -321,9 +341,9 @@ def train(env_id,
                                  continuous=continuous, **ppo_kwargs)
 
             if writer:
-                writer.add_scalar('losses/policy_loss', metrics['pg_loss'], step)
-                writer.add_scalar('losses/value_loss',  metrics['vf_loss'], step)
-                writer.add_scalar('losses/entropy',     metrics['entropy'], step)
+                writer.add_scalar('losses/policy_loss', metrics['pg_loss'],  step)
+                writer.add_scalar('losses/value_loss',  metrics['vf_loss'],  step)
+                writer.add_scalar('losses/entropy',     metrics['entropy'],  step)
                 writer.add_scalar('losses/clip_frac',   metrics['clip_frac'], step)
 
             if verbose:

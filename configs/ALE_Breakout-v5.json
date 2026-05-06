@@ -1,0 +1,17 @@
+{
+  "env_id": "ALE/Breakout-v5",
+  "score": 9.95,
+  "params": {
+    "lr": 0.0008478057453550076,
+    "ent_coef": 0.033821474950196495,
+    "vf_coef": 0.9981200332951324,
+    "clip_eps": 0.19972160173589124,
+    "gamma": 0.9647726607132778,
+    "gae_lambda": 0.8660133123933768,
+    "max_grad_norm": 0.9908313763802784,
+    "hidden": 256,
+    "n_epochs": 5,
+    "batch_size": 128,
+    "rollout_steps": 1024
+  }
+}

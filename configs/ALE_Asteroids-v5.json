@@ -1,0 +1,17 @@
+{
+  "env_id": "ALE/Asteroids-v5",
+  "score": 1807.2,
+  "params": {
+    "lr": 0.0005182422982789697,
+    "ent_coef": 0.0017889119049887138,
+    "vf_coef": 0.7005421696388818,
+    "clip_eps": 0.37032485100769374,
+    "gamma": 0.981590360448427,
+    "gae_lambda": 0.8858124358645996,
+    "max_grad_norm": 0.5710362725917146,
+    "hidden": 256,
+    "n_epochs": 4,
+    "batch_size": 64,
+    "rollout_steps": 512
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "env_id": "ALE/DonkeyKong-v5",
+  "score": 182.0,
+  "params": {
+    "lr": 0.0003627276979013868,
+    "ent_coef": 0.048046715265792524,
+    "vf_coef": 0.32115517230582,
+    "clip_eps": 0.26022956409509523,
+    "gamma": 0.980879798677493,
+    "gae_lambda": 0.9306037785138689,
+    "max_grad_norm": 0.8314828306468666,
+    "hidden": 256,
+    "n_epochs": 7,
+    "batch_size": 128,
+    "rollout_steps": 1024
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "env_id": "ALE/Pitfall-v5",
+  "score": -6.61,
+  "params": {
+    "lr": 0.0005722998379770977,
+    "ent_coef": 0.0005707689840635936,
+    "vf_coef": 0.8413247563325368,
+    "clip_eps": 0.2973284497478087,
+    "gamma": 0.993681752527211,
+    "gae_lambda": 0.948341840684422,
+    "max_grad_norm": 0.5428658691779881,
+    "hidden": 256,
+    "n_epochs": 7,
+    "batch_size": 64,
+    "rollout_steps": 512
+  }
+}

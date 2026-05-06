@@ -226,6 +226,7 @@ def run_train(env_id, checkpoint=None):
         env_factory     = env_factory,
         render_factory  = render_factory,
         silent_episodes = env_id in FACTORIES,
+        use_lstm        = True,
         gamma           = params.pop('gamma',         0.99),
         gae_lambda      = params.pop('gae_lambda',    0.95),
         rollout_steps   = params.pop('rollout_steps', 2048),

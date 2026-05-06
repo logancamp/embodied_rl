@@ -1,0 +1,17 @@
+{
+  "env_id": "ALE/Centipede-v5",
+  "score": 7798.16,
+  "params": {
+    "lr": 0.0008946876158666452,
+    "ent_coef": 0.0011983709549094283,
+    "vf_coef": 0.40492836911698216,
+    "clip_eps": 0.3959005706407438,
+    "gamma": 0.9702121580641377,
+    "gae_lambda": 0.9064416869349825,
+    "max_grad_norm": 0.9341858537210366,
+    "hidden": 128,
+    "n_epochs": 7,
+    "batch_size": 128,
+    "rollout_steps": 512
+  }
+}
