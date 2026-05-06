@@ -43,11 +43,12 @@ I_ENVS := \
 # ── Configure these ────────────────────────────────────────────
 CHECKPOINT_DIR     := checkpoints
 
-RUN_ENV            := ALE/Pong-v5
+RUN_ENV            := CartPole-v1
 TUNE_ENV           := CartPole-v1
 
 TUNE_TRIALS_VECTOR := 50
 TUNE_STEPS_VECTOR  := 50000
+COMPARE_STEPS := 500000
 
 TUNE_STEPS_IMAGE   := 200000
 TUNE_TRIALS_IMAGE  := 20
@@ -75,6 +76,11 @@ $(VENV)/bin/activate:
 	$(PIP) install autorom
 	$(VENV)/bin/AutoROM --accept-license
 	touch $(VENV)/bin/activate
+
+compare: $(VENV)/bin/activate
+	@echo "Comparing $(RUN_ENV) for $(COMPARE_STEPS) steps..."
+	$(PYTHON) -u main.py --env $(RUN_ENV) --total-steps $(COMPARE_STEPS)
+	$(PYTHON) -u report.py
 
 run: $(VENV)/bin/activate
 	@if [ -n "$(LATEST_CKPT)" ]; then \
