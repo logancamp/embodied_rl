@@ -212,4 +212,4 @@ runs/
 
 # Keep these tracked (remove the lines below if you want to ignore them too)
 # checkpoints/
-# configs/
+# configs/.DS_Store
