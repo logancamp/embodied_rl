@@ -66,7 +66,8 @@ $(VENV)/bin/activate:
 
 # ------- Run Options -----------------------------------------------
 CHECKPOINT_DIR := checkpoints
-RUN_ENV := CartPole-v1
+RUN_ENV := ALE/Pong-v5
+COMPARE_STEPS := 1000000
 
 test:
 	osascript -e 'tell app "Terminal" to do script "cd $(PWD) && $(MAKE) board"'
@@ -89,11 +90,8 @@ compare: $(VENV)/bin/activate
 
 # ------- Tuning Options -----------------------------------------------
 TUNE_ENV := CartPole-v1
-
 TUNE_TRIALS_VECTOR := 50
-TUNE_STEPS_VECTOR  := 50000
-COMPARE_STEPS := 500000
-
+TUNE_STEPS_VECTOR := 50000
 TUNE_STEPS_IMAGE := 200000
 TUNE_TRIALS_IMAGE := 20
 
