@@ -40,10 +40,6 @@ I_ENVS := \
 	ALE/DonkeyKong-v5 \
 	CarRacing-v3
 
-SAFE_ENV    := $(shell echo $(RUN_ENV) | tr '/' '_')
-LATEST_CKPT := $(shell ls -t $(CHECKPOINT_DIR)/$(SAFE_ENV)_latest.pt 2>/dev/null | head -1)
-RESUME      := $(if $(LATEST_CKPT),--checkpoint $(LATEST_CKPT),)
-
 # ------- Setup Options -----------------------------------------------
 clean:
 	rm -rf $(VENV) __pycache__ runs/ ppo_env
@@ -68,6 +64,10 @@ $(VENV)/bin/activate:
 CHECKPOINT_DIR := checkpoints
 RUN_ENV := ALE/Pong-v5
 COMPARE_STEPS := 1000000
+
+SAFE_ENV    := $(shell echo $(RUN_ENV) | tr '/' '_')
+LATEST_CKPT := $(shell ls -t $(CHECKPOINT_DIR)/$(SAFE_ENV)_latest.pt 2>/dev/null | head -1)
+RESUME      := $(if $(LATEST_CKPT),--checkpoint $(LATEST_CKPT),)
 
 test:
 	osascript -e 'tell app "Terminal" to do script "cd $(PWD) && $(MAKE) board"'
