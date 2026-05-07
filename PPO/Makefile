@@ -87,7 +87,7 @@ run: $(VENV)/bin/activate
 	else \
 		echo "  No checkpoint found, starting fresh"; \
 	fi
-	$(PYTHON) -u main.py --env $(RUN_ENV) $(RESUME)
+	$(PYTHON) -u main.py --env $(RUN_ENV) $(RESUME) --render
 
 compare: $(VENV)/bin/activate
 	@echo "Comparing $(RUN_ENV) for $(COMPARE_STEPS) steps..."

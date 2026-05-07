@@ -198,7 +198,7 @@ FACTORIES = {
 # ──────────────────────────────────────────────────────────────────────────────
 
 
-def run_train(env_id, checkpoint=None, total_steps=None):
+def run_train(env_id, checkpoint=None, total_steps=None, render=False):
     path = config_path(env_id)
 
     if os.path.exists(path):
@@ -221,7 +221,7 @@ def run_train(env_id, checkpoint=None, total_steps=None):
     train(
         env_id          = env_id,
         total_steps     = total_steps or float('inf'),  # type: ignore
-        render          = True,
+        render          = render,
         checkpoint      = checkpoint,
         env_factory     = env_factory,
         render_factory  = render_factory,
@@ -242,10 +242,11 @@ if __name__ == "__main__":
     parser.add_argument('--trials',      type=int, default=50)
     parser.add_argument('--checkpoint',  type=str, default=None)
     parser.add_argument('--total-steps', type=int, default=None)
+    parser.add_argument('--render',      action='store_true')
     args = parser.parse_args()
 
     if args.tune:
         _, _, tune_factory = FACTORIES.get(args.env, (None, None, None))
         tune(args.env, args.trials, env_factory=tune_factory, total_steps=args.total_steps)
     else:
-        run_train(args.env, args.checkpoint, args.total_steps)
+        run_train(args.env, args.checkpoint, args.total_steps, args.render)
