@@ -210,6 +210,5 @@ __marimo__/
 ppo_env/
 runs/
 
-# Keep these tracked (remove the lines below if you want to ignore them too)
-# checkpoints/
-# configs/.DS_Store
+# macOS
+.DS_Store
