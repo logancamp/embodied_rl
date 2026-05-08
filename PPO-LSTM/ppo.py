@@ -421,10 +421,11 @@ def tune(env_id, n_trials=50, total_steps=50_000, env_factory=None):
             gamma         = trial.suggest_float('gamma',         0.95, 0.999)
             gae_lambda    = trial.suggest_float('gae_lambda',    0.8,  0.99)
             max_grad_norm = trial.suggest_float('max_grad_norm', 0.3,  1.0)
-            hidden        = trial.suggest_categorical('hidden',        [64, 128, 256])
-            n_epochs      = trial.suggest_int('n_epochs',              2, 10)
+            # expanded search space for LSTM
+            hidden        = trial.suggest_categorical('hidden',        [128, 256, 512])
+            n_epochs      = trial.suggest_int('n_epochs',              2, 6)
             batch_size    = trial.suggest_categorical('batch_size',    [32, 64, 128])
-            rollout_steps = trial.suggest_categorical('rollout_steps', [512, 1024, 2048])
+            rollout_steps = trial.suggest_categorical('rollout_steps', [512, 1024, 2048, 4096])
 
             score = train(
                 env_id        = env_id,
@@ -436,6 +437,7 @@ def tune(env_id, n_trials=50, total_steps=50_000, env_factory=None):
                 render        = False,
                 return_score  = True,
                 verbose       = False,
+                use_lstm      = True,
                 clip_eps      = clip_eps,
                 vf_coef       = vf_coef,
                 ent_coef      = ent_coef,
